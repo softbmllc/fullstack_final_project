@@ -5,16 +5,19 @@ from . import views
 app_name = 'djangoapp'
 
 urlpatterns = [
-    # páginas estáticas
+    # páginas
     path('', TemplateView.as_view(template_name='Home.html'), name='home'),
     path('about/', TemplateView.as_view(template_name='About.html'), name='about'),
     path('contact/', TemplateView.as_view(template_name='Contact.html'), name='contact'),
 
-    # endpoints de autenticación
+    # página de login (HTML simple para el despliegue)
+    path('login/', views.login_page, name='login_page'),
+
+    # endpoints de autenticación (JSON)
     path('djangoapp/login', views.login_user),
     path('djangoapp/logout', views.logout_user),
     path('djangoapp/register', views.register_user),
 
-    # endpoint de Proyecto 4
+    # proyecto 4
     path('get_cars', views.get_cars, name='get_cars'),
 ]
