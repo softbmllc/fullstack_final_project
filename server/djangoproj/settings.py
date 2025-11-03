@@ -79,10 +79,11 @@ TEMPLATES = [
 WSGI_APPLICATION = 'djangoproj.wsgi.application'
 
 # --- DATABASE ---
+DB_DIR = os.environ.get("DB_DIR", "/tmp")  # /tmp es siempre escribible en Code Engine
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.path.join(DB_DIR, 'db.sqlite3'),
     }
 }
 
