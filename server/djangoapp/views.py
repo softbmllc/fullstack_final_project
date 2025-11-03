@@ -63,3 +63,8 @@ def login_user(request):
 # Create a `add_review` view to submit a review
 # def add_review(request):
 # ...
+
+from django.shortcuts import render
+
+def home(request):
+    return render(request,"Home.html")
