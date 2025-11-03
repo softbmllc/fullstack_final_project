@@ -21,11 +21,11 @@ COPY server/ /app/
 # Colectar estáticos (si falla, no romper la build)
 RUN python manage.py collectstatic --noinput || true
 
-# Exponer puerto 8080
-EXPOSE 8080
-
-# Asegurar permisos de escritura para sqlite (capa writable)
+# Asegurar permisos de escritura para sqlite
 RUN chmod -R 777 /app
 
-# Arranque: intentar migrar (si falla, continuar) y luego arrancar Gunicorn
-CMD ["sh","-c","python manage.py migrate --noinput || true; gunicorn djangoproj.wsgi:application --bind 0.0.0.0:8080 --workers 3"]
+# Exponer puerto (Code Engine escucha 8080)
+EXPOSE 8080
+
+# Arranque: generar migraciones, migrar (aunque falle, continuar) y luego Gunicorn
+CMD ["sh","-c","python manage.py makemigrations --noinput || true; python manage.py migrate --noinput || true; gunicorn djangoproj.wsgi:application --bind 0.0.0.0:${PORT} --workers 3"]
