@@ -2,9 +2,11 @@ from django.http import JsonResponse
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import render
 from .models import CarMake, CarModel
 from .populate import initiate
 import json
+
 
 # ---------- utilidades ----------
 def _json_or_400(request):
@@ -14,7 +16,7 @@ def _json_or_400(request):
         return None
 
 
-# ---------- autenticación ----------
+# ---------- autenticación (API JSON) ----------
 @csrf_exempt
 def login_user(request):
     if request.method != "POST":
@@ -61,6 +63,15 @@ def register_user(request):
     )
     login(request, user)
     return JsonResponse({"userName": username, "status": True})
+
+
+# ---------- página de login (HTML) ----------
+def login_page(request):
+    """
+    Renderiza una página simple de login para el despliegue.
+    El formulario llama al endpoint /djangoapp/login.
+    """
+    return render(request, "login.html")
 
 
 # ---------- proyecto 4: endpoint get_cars ----------
