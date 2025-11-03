@@ -1,28 +1,40 @@
 """
 Django settings for djangoproj project.
+Configurado para entorno local y despliegue en IBM Code Engine.
 """
 import os
 from pathlib import Path
 
+# --- BASE CONFIG ---
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-ccow$tz_=9%dxu4(0%^(z%nx32#s@(zt9$ih@)5l54yny)wm-0'
 DEBUG = True
 
+# Aceptar hosts locales y cualquier dominio del contenedor (necesario para Code Engine)
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    'ropalo1987-8000.theianext-0-labs-prod-misc-tools-us-east-0.proxy.cognitiveclass.ai',
+    '0.0.0.0',
+    '*',  # permite recibir peticiones externas (Code Engine)
 ]
 
 CSRF_TRUSTED_ORIGINS = [
+    # entorno local
+    'http://localhost',
+    'http://127.0.0.1',
+    # proxy de CognitiveClass (Theia)
     'https://ropalo1987-8000.theianext-0-labs-prod-misc-tools-us-east-0.proxy.cognitiveclass.ai',
+    # dominios de Code Engine (usa tu región us-south)
+    'https://*.us-south.codeengine.appdomain.cloud',
 ]
 
+# --- REST API ---
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [],
 }
 
+# --- DJANGO APPS ---
 INSTALLED_APPS = [
     'djangoapp.apps.DjangoappConfig',
     'django.contrib.admin',
@@ -37,6 +49,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -44,12 +57,14 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'djangoproj.urls'
 
+# --- TEMPLATES (Django + React build) ---
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        # Solo el build de React para poder renderizar index.html en /login y /register
-        'DIRS': [os.path.join(BASE_DIR, 'frontend', 'build')],
-        'APP_DIRS': True,  # sigue encontrando About.html/Contact.html dentro de djangoapp/templates
+        'DIRS': [
+            os.path.join(BASE_DIR, 'frontend', 'build'),
+        ],
+        'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -63,6 +78,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'djangoproj.wsgi.application'
 
+# --- DATABASE ---
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -70,6 +86,7 @@ DATABASES = {
     }
 }
 
+# --- PASSWORD VALIDATION ---
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -77,15 +94,17 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+# --- INTERNATIONALIZATION ---
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
+# --- STATIC FILES ---
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-# Archivos estáticos del proyecto y del build de React
+
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'frontend', 'static'),
     os.path.join(BASE_DIR, 'frontend', 'build', 'static'),
@@ -94,4 +113,5 @@ STATICFILES_DIRS = [
 MEDIA_ROOT = os.path.join(STATIC_ROOT, 'media')
 MEDIA_URL = '/media/'
 
+# --- DEFAULT PRIMARY KEY ---
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
