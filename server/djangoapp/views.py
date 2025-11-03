@@ -20,8 +20,11 @@ def _json_or_400(request):
 
 # ---------- healthcheck ----------
 def health(request):
-    """Verifica que el contenedor responda correctamente."""
-    return JsonResponse({"status": "ok"})
+    import traceback
+    try:
+        return JsonResponse({"status": "ok"})
+    except Exception as e:
+        return JsonResponse({"error": str(e), "trace": traceback.format_exc()}, status=500)
 
 
 # ---------- autenticación (API JSON) ----------
