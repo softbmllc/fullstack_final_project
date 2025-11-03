@@ -2,9 +2,10 @@ from django.http import JsonResponse
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from .models import CarMake, CarModel
 from .populate import initiate
+from .restapis import get_request, post_review  # <─ usamos tu cliente REST
 import json
 
 
@@ -67,30 +68,68 @@ def register_user(request):
 
 # ---------- página de login (HTML) ----------
 def login_page(request):
-    """
-    Renderiza una página simple de login para el despliegue.
-    El formulario llama al endpoint /djangoapp/login.
-    """
     return render(request, "login.html")
 
 
 # ---------- proyecto 4: endpoint get_cars ----------
 def get_cars(request):
-    """
-    Devuelve todos los CarModel junto con su CarMake.
-    Si la tabla está vacía, se ejecuta populate.initiate() automáticamente.
-    """
+    """Devuelve CarModel + CarMake; si no hay datos ejecuta populate()."""
     if CarMake.objects.count() == 0 or CarModel.objects.count() == 0:
         initiate()
 
     cars = CarModel.objects.select_related("car_make").all()
     data = [
         {
-            "CarMake": car.car_make.name,
-            "CarModel": car.name,
-            "Type": car.type,
-            "Year": car.year,
+            "CarMake": c.car_make.name,
+            "CarModel": c.name,
+            "Type": c.type,
+            "Year": c.year,
         }
-        for car in cars
+        for c in cars
     ]
     return JsonResponse({"CarModels": data})
+
+
+# ---------- Páginas dinámicas para el despliegue ----------
+def dealer_details_page(request, dealer_id: int):
+    """Detalle del dealer + reviews (Render HTML)."""
+    dealer = get_request(f"/fetchDealer/{dealer_id}") or {}
+    reviews = get_request(f"/fetchReviews/dealer/{dealer_id}") or []
+    return render(
+        request,
+        "dealer_details.html",
+        {"dealer": dealer, "reviews": reviews, "dealer_id": dealer_id},
+    )
+
+
+def add_review_form(request, dealer_id: int):
+    """Muestra el formulario para enviar la review."""
+    dealer = get_request(f"/fetchDealer/{dealer_id}") or {}
+    return render(
+        request,
+        "add_review.html",
+        {"dealer": dealer, "dealer_id": dealer_id},
+    )
+
+
+def post_review_view(request, dealer_id: int):
+    """Recibe el form, envía al backend Node y redirige al detalle."""
+    if request.method != "POST":
+        return redirect(f"/dealer/{dealer_id}")
+
+    payload = {
+        "name": request.user.username if request.user.is_authenticated else "guest",
+        "dealership": dealer_id,
+        "review": request.POST.get("review", ""),
+        "purchase": request.POST.get("purchase") == "on",
+        "purchase_date": request.POST.get("purchase_date", ""),
+        "car_make": request.POST.get("car_make", ""),
+        "car_model": request.POST.get("car_model", ""),
+        "car_year": int(request.POST.get("car_year") or 0),
+    }
+    try:
+        post_review(payload)
+    except Exception:
+        pass  # si falla, igual redirigimos al detalle
+
+    return redirect(f"/dealer/{dealer_id}")
