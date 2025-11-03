@@ -1,27 +1,28 @@
 # Imagen base ligera con Python 3.10
 FROM python:3.10-slim
 
+# Evitar archivos .pyc y usar stdout sin buffer
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PORT=8080
 
-# Carpeta de la app
+# Carpeta de trabajo dentro de la imagen
 WORKDIR /app
 
-# Instalar dependencias
-# (requirements.txt está dentro de server/, por eso lo copiamos así desde la raíz del repo)
-COPY server/requirements.txt /app/requirements.txt
+# Instalar dependencias (el requirements.txt está dentro de server/)
+COPY server/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r /app/requirements.txt \
+    && pip install --no-cache-dir -r /tmp/requirements.txt \
     && pip install --no-cache-dir gunicorn
 
-# Copiar el código Django (carpeta server/ del repo → /app)
+# Copiar el código Django (carpeta server/ → /app)
 COPY server/ /app/
 
-# Opcional: colectar estáticos; si falla, que no rompa la build
+# Colectar estáticos (si falla, no romper la build)
 RUN python manage.py collectstatic --noinput || true
 
-# Exponer puerto 8080 (Code Engine espera 8080)
+# Exponer puerto (Code Engine escucha 8080)
 EXPOSE 8080
 
-# Ejecutar con gunicorn (producción)
-CMD ["gunicorn", "djangoproj.wsgi:application", "--bind", "0.0.0.0:8080", "--workers", "3"]
+# Arranque: ejecutar migraciones y luego Gunicorn
+CMD ["sh","-c","python manage.py migrate --noinput && gunicorn djangoproj.wsgi:application --bind 0.0.0.0:${PORT} --workers 3"]
