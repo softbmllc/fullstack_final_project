@@ -21,8 +21,8 @@ COPY server/ /app/
 # Colectar estáticos (si falla, no romper la build)
 RUN python manage.py collectstatic --noinput || true
 
-# Exponer puerto (Code Engine escucha 8080)
+# Exponer puerto 8080
 EXPOSE 8080
 
-# Arranque: ejecutar migraciones y luego Gunicorn
-CMD ["sh","-c","python manage.py migrate --noinput && gunicorn djangoproj.wsgi:application --bind 0.0.0.0:${PORT} --workers 3"]
+# Ejecutar las migraciones y luego mantener Gunicorn activo
+CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn djangoproj.wsgi:application --bind 0.0.0.0:8080 --workers 3"]
