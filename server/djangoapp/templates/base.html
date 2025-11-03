@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Dealerships{% endblock %}</title>
   <style>
     html,body{margin:0;padding:0;font-family:system-ui,Arial,sans-serif;background:#f7f9fb;color:#222}
@@ -12,6 +13,7 @@
     .nav{list-style:none;display:flex;gap:18px;margin:0;padding:0}
     .nav a{color:#fff;text-decoration:none;font-weight:500}
     .nav a:hover{text-decoration:underline}
+    .loginlink{margin-left:auto;padding-right:16px;color:#fff;font-weight:600}
     main{padding:32px 0}
     .card{background:#fff;border:1px solid #e6e9ee;border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,.08);padding:24px}
     .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
@@ -25,17 +27,43 @@
 </head>
 <body>
   <header class="top">
-    <div class="wrap row">
+    <div class="wrap row" style="display:flex;align-items:center;">
       <div class="brand">Dealerships</div>
       <ul class="nav">
         <li><a href="{% url 'djangoapp:home' %}">Home</a></li>
         <li><a href="{% url 'djangoapp:about' %}">About Us</a></li>
         <li><a href="{% url 'djangoapp:contact' %}">Contact Us</a></li>
       </ul>
+      <div class="loginlink">
+        <span id="auth-slot"></span>
+      </div>
     </div>
   </header>
+
   <main class="wrap">
     {% block content %}{% endblock %}
   </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const slot = document.getElementById('auth-slot');
+      if (!slot) return;
+      const u = sessionStorage.getItem('username');
+
+      if (u) {
+        slot.innerHTML = `${u} <a href="#" id="logout-link" style="color:#fff;text-decoration:underline;margin-left:8px;">Logout</a>`;
+        document.getElementById('logout-link').addEventListener('click', async (e) => {
+          e.preventDefault();
+          try {
+            await fetch('/djangoapp/logout', { method: 'GET' });
+          } catch(_) {}
+          sessionStorage.removeItem('username');
+          location.href = '/';
+        });
+      } else {
+        slot.innerHTML = `<a href="/login/" style="color:#fff;text-decoration:underline;">Login</a>`;
+      }
+    });
+  </script>
 </body>
 </html>

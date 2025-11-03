@@ -47,8 +47,9 @@ ROOT_URLCONF = 'djangoproj.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],              # ← vacío. Las plantillas viven en djangoapp/templates
-        'APP_DIRS': True,        # ← habilita cargador de plantillas de apps
+        # Solo el build de React para poder renderizar index.html en /login y /register
+        'DIRS': [os.path.join(BASE_DIR, 'frontend', 'build')],
+        'APP_DIRS': True,  # sigue encontrando About.html/Contact.html dentro de djangoapp/templates
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -84,7 +85,11 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'frontend', 'static')]  # ← aquí están style.css y person.png
+# Archivos estáticos del proyecto y del build de React
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'frontend', 'static'),
+    os.path.join(BASE_DIR, 'frontend', 'build', 'static'),
+]
 
 MEDIA_ROOT = os.path.join(STATIC_ROOT, 'media')
 MEDIA_URL = '/media/'
