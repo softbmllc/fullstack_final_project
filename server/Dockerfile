@@ -24,5 +24,8 @@ RUN python manage.py collectstatic --noinput || true
 # Exponer puerto 8080
 EXPOSE 8080
 
-# Ejecutar las migraciones y luego mantener Gunicorn activo
-CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn djangoproj.wsgi:application --bind 0.0.0.0:8080 --workers 3"]
+# Asegurar permisos de escritura para sqlite (capa writable)
+RUN chmod -R 777 /app
+
+# Arranque: intentar migrar (si falla, continuar) y luego arrancar Gunicorn
+CMD ["sh","-c","python manage.py migrate --noinput || true; gunicorn djangoproj.wsgi:application --bind 0.0.0.0:8080 --workers 3"]
