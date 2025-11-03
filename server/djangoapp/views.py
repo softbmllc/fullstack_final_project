@@ -5,8 +5,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render, redirect
 from .models import CarMake, CarModel
 from .populate import initiate
-from .restapis import get_request, post_review  # <─ usamos tu cliente REST
+from .restapis import get_request, post_review
 import json
+import traceback
 
 
 # ---------- utilidades ----------
@@ -15,6 +16,12 @@ def _json_or_400(request):
         return json.loads(request.body or b"{}")
     except json.JSONDecodeError:
         return None
+
+
+# ---------- healthcheck ----------
+def health(request):
+    """Verifica que el contenedor responda correctamente."""
+    return JsonResponse({"status": "ok"})
 
 
 # ---------- autenticación (API JSON) ----------
@@ -73,21 +80,27 @@ def login_page(request):
 
 # ---------- proyecto 4: endpoint get_cars ----------
 def get_cars(request):
-    """Devuelve CarModel + CarMake; si no hay datos ejecuta populate()."""
-    if CarMake.objects.count() == 0 or CarModel.objects.count() == 0:
-        initiate()
-
-    cars = CarModel.objects.select_related("car_make").all()
-    data = [
-        {
-            "CarMake": c.car_make.name,
-            "CarModel": c.name,
-            "Type": c.type,
-            "Year": c.year,
-        }
-        for c in cars
-    ]
-    return JsonResponse({"CarModels": data})
+    """
+    Devuelve CarModel + CarMake; si no hay datos ejecuta populate().
+    Si algo falla, devolvemos el traceback como JSON para diagnosticar sin Cloud Logs.
+    """
+    try:
+        if CarMake.objects.count() == 0 or CarModel.objects.count() == 0:
+            initiate()
+        cars = CarModel.objects.select_related("car_make").all()
+        data = [
+            {
+                "CarMake": c.car_make.name,
+                "CarModel": c.name,
+                "Type": c.type,
+                "Year": c.year,
+            }
+            for c in cars
+        ]
+        return JsonResponse({"CarModels": data})
+    except Exception as e:
+        tb = traceback.format_exc()
+        return JsonResponse({"error": str(e), "trace": tb}, status=500)
 
 
 # ---------- Páginas dinámicas para el despliegue ----------
