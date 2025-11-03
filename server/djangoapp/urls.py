@@ -5,6 +5,9 @@ from . import views
 app_name = 'djangoapp'
 
 urlpatterns = [
+    # Health check
+    path('health', views.health, name='health'),
+
     # Páginas estáticas / landing
     path('', TemplateView.as_view(template_name='Home.html'), name='home'),
     path('about/', TemplateView.as_view(template_name='About.html'), name='about'),
