@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Post Review{% endblock %}
+{% block content %}
+<h2>Post Review — {{ dealer.full_name }}</h2>
+
+<form method="post" action="/dealer/{{ dealer_id }}/review/submit" style="max-width:520px">
+  {% csrf_token %}
+  <div><label>Review</label><br/><textarea name="review" rows="4" style="width:100%"></textarea></div>
+  <div><label><input type="checkbox" name="purchase"> Purchased this car?</label></div>
+  <div><label>Purchase date</label><br/><input type="date" name="purchase_date"></div>
+  <div><label>Car make</label><br/><input name="car_make" placeholder="e.g. Toyota"></div>
+  <div><label>Car model</label><br/><input name="car_model" placeholder="e.g. Camry"></div>
+  <div><label>Car year</label><br/><input name="car_year" placeholder="e.g. 2023"></div>
+  <br/>
+  <button type="submit">Submit Review</button>
+</form>
+{% endblock %}
