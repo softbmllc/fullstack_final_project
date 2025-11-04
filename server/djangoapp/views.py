@@ -5,29 +5,66 @@ from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render, redirect
 from .models import CarMake, CarModel
 from .populate import initiate
-from .restapis import get_request, post_review
-import json
-import traceback
+import json, os, requests, traceback
 
+# =======================
+#  Utilidades internas
+# =======================
 
-# ---------- utilidades ----------
 def _json_or_400(request):
     try:
         return json.loads(request.body or b"{}")
     except json.JSONDecodeError:
         return None
 
+# --- Cliente simple para el microservicio Node (opcional) ---
+DEALER_API = os.environ.get("DEALER_API", "").rstrip("/")
 
-# ---------- healthcheck ----------
+def _api_url(path: str) -> str | None:
+    if path.startswith("http://") or path.startswith("https://"):
+        return path
+    if DEALER_API:
+        if not path.startswith("/"):
+            path = "/" + path
+        return DEALER_API + path
+    return None
+
+def api_get(path: str) -> dict | list:
+    url = _api_url(path)
+    if not url:
+        return {}
+    try:
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+        return r.json()
+    except Exception:
+        return {}
+
+def api_post(path: str, payload: dict) -> dict:
+    url = _api_url(path)
+    if not url:
+        return {"status": "stub", "detail": "No DEALER_API defined"}
+    try:
+        r = requests.post(url, json=payload, timeout=10)
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+
+# =======================
+#  Health / diagnóstico
+# =======================
+
 def health(request):
-    import traceback
     try:
         return JsonResponse({"status": "ok"})
     except Exception as e:
         return JsonResponse({"error": str(e), "trace": traceback.format_exc()}, status=500)
 
+# =======================
+#  Autenticación API JSON
+# =======================
 
-# ---------- autenticación (API JSON) ----------
 @csrf_exempt
 def login_user(request):
     if request.method != "POST":
@@ -43,13 +80,11 @@ def login_user(request):
         return JsonResponse({"userName": username, "status": "Authenticated"})
     return JsonResponse({"userName": username, "status": "Failed"})
 
-
 def logout_user(request):
     if request.method != "GET":
         return JsonResponse({"error": "Method not allowed"}, status=405)
     logout(request)
     return JsonResponse({"userName": ""})
-
 
 @csrf_exempt
 def register_user(request):
@@ -75,21 +110,21 @@ def register_user(request):
     login(request, user)
     return JsonResponse({"userName": username, "status": True})
 
+# =======================
+#  Páginas HTML
+# =======================
 
-# ---------- página de login (HTML) ----------
 def login_page(request):
     return render(request, "login.html")
 
-
-# ---------- proyecto 4: endpoint get_cars ----------
 def get_cars(request):
     """
     Devuelve CarModel + CarMake; si no hay datos ejecuta populate().
-    Si algo falla, devolvemos el traceback como JSON para diagnosticar sin Cloud Logs.
+    Si algo falla, devolvemos el traceback como JSON (diagnóstico).
     """
     try:
         if CarMake.objects.count() == 0 or CarModel.objects.count() == 0:
-            initiate()
+            initiate()      # poblar si está vacío
         cars = CarModel.objects.select_related("car_make").all()
         data = [
             {
@@ -102,31 +137,26 @@ def get_cars(request):
         ]
         return JsonResponse({"CarModels": data})
     except Exception as e:
-        tb = traceback.format_exc()
-        return JsonResponse({"error": str(e), "trace": tb}, status=500)
+        return JsonResponse({"error": str(e), "trace": traceback.format_exc()}, status=500)
 
-
-# ---------- Páginas dinámicas para el despliegue ----------
 def dealer_details_page(request, dealer_id: int):
     """Detalle del dealer + reviews (Render HTML)."""
-    dealer = get_request(f"/fetchDealer/{dealer_id}") or {}
-    reviews = get_request(f"/fetchReviews/dealer/{dealer_id}") or []
+    dealer = api_get(f"/fetchDealer/{dealer_id}") or {}
+    reviews = api_get(f"/fetchReviews/dealer/{dealer_id}") or []
     return render(
         request,
         "dealer_details.html",
         {"dealer": dealer, "reviews": reviews, "dealer_id": dealer_id},
     )
 
-
 def add_review_form(request, dealer_id: int):
     """Muestra el formulario para enviar la review."""
-    dealer = get_request(f"/fetchDealer/{dealer_id}") or {}
+    dealer = api_get(f"/fetchDealer/{dealer_id}") or {}
     return render(
         request,
         "add_review.html",
         {"dealer": dealer, "dealer_id": dealer_id},
     )
-
 
 def post_review_view(request, dealer_id: int):
     """Recibe el form, envía al backend Node y redirige al detalle."""
@@ -143,9 +173,5 @@ def post_review_view(request, dealer_id: int):
         "car_model": request.POST.get("car_model", ""),
         "car_year": int(request.POST.get("car_year") or 0),
     }
-    try:
-        post_review(payload)
-    except Exception:
-        pass  # si falla, igual redirigimos al detalle
-
+    api_post("/insert_review", payload)   # si falla, igual redirigimos
     return redirect(f"/dealer/{dealer_id}")
