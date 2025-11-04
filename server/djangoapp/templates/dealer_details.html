@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Dealer Details{% endblock %}
+
+{% block content %}
+  <h2>{{ dealer.full_name|default:"Dealer" }}</h2>
+  <p>
+    {{ dealer.address }}{% if dealer.address %},{% endif %}
+    {{ dealer.city }}{% if dealer.city %},{% endif %}
+    {{ dealer.state }} {{ dealer.zip }}
+  </p>
+
+  <p><a href="/dealer/{{ dealer_id }}/review">Post Review</a></p>
+
+  <h3>Reviews</h3>
+  <ul>
+    {% if reviews %}
+      {% for r in reviews %}
+        <li>
+          <b>{{ r.name|default:"anon" }}</b>:
+          {{ r.review }}
+          {% if r.purchase %} (Purchased on {{ r.purchase_date }}){% endif %}
+          {% if r.car_make %} — {{ r.car_make }} {{ r.car_model }} {{ r.car_year }}{% endif %}
+        </li>
+      {% endfor %}
+    {% else %}
+      <li>No reviews yet.</li>
+    {% endif %}
+  </ul>
+{% endblock %}
