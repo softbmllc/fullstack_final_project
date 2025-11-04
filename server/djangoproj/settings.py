@@ -32,8 +32,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'djangoproj.diagnostic_middleware.JsonErrorMiddleware',   # <- diagnóstico temporal
     'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',  # mantiene sesiones (ahora en cookies)
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
