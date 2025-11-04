@@ -28,4 +28,4 @@ RUN chmod -R 777 /app
 EXPOSE 8080
 
 # Arranque: generar migraciones, migrar (aunque falle, continuar) y luego Gunicorn
-CMD ["sh","-c","python manage.py makemigrations --noinput || true; python manage.py migrate --noinput || true; gunicorn djangoproj.wsgi:application --bind 0.0.0.0:${PORT} --workers 3"]
+CMD ["sh","-c","python manage.py makemigrations --noinput || true; python manage.py migrate --noinput --run-syncdb || true; gunicorn djangoproj.wsgi:application --bind 0.0.0.0:${PORT:-8080} --workers 3"]
